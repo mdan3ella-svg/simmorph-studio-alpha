@@ -14,7 +14,7 @@ import {
 import './index.css';
 
 /**
- * SIMMORPH KERNEL v7.9.16
+ * SIMMORPH KERNEL v7.9.17
  * Unified Entry Point: src/main.jsx
  * FIXED: targetUrl cleaned of Markdown artifacts for production stability.
  */
@@ -153,7 +153,6 @@ const App = () => {
   const generateFromAI = async () => {
     if (!prompt) return; setLoading(true);
     try {
-      // FIXED: Corrected clean string for targetUrl
       const targetUrl = "[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/)" + modelName + ":generateContent?key=" + apiKey;
       const res = await fetch(targetUrl, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -183,7 +182,7 @@ const App = () => {
       )}
       <div className="absolute top-8 left-8 flex items-center gap-6 bg-[#1e1e20]/60 backdrop-blur-3xl p-5 rounded-full border border-white/5 shadow-2xl z-30">
         <Cpu size={26} className="text-sky-400" />
-        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.16</span>
+        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.17</span>
       </div>
       <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-2 gap-2 shadow-inner z-30">
         <button onClick={() => { setActiveTab('kernel'); setInspectMode(false); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'kernel' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}><Layout size={16} /> Workstation</button>
