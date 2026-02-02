@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  // Ensure this matches your repo name
+  // Matches your repo name exactly
   base: '/simmorph-studio-alpha/', 
   build: {
     target: 'esnext', 
