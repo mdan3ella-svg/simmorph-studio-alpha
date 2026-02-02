@@ -14,7 +14,7 @@ import {
 import './index.css';
 
 /**
- * SIMMORPH KERNEL v7.9.34
+ * SIMMORPH KERNEL v7.9.35
  * Unified Entry Point: src/main.jsx
  * FIXED: targetUrl string corrected to pure JS (no markdown link brackets).
  */
@@ -40,15 +40,6 @@ try {
     auth = getAuth(firebaseApp); db = getFirestore(firebaseApp);
   }
 } catch (e) { console.warn("SimMorph: Sync deferred."); }
-
-const MATERIALS = {
-  concrete: { color: 0x94a3b8, label: 'Concrete' },
-  glass: { color: 0xbae6fd, transparent: true, opacity: 0.3, label: 'Glass' },
-  timber: { color: 0x92400e, label: 'CLT' },
-  steel: { color: 0x334155, label: 'Steel' },
-  void: { color: 0xffffff, transparent: true, opacity: 0.05, wireframe: true, label: 'Void' },
-  default: { color: 0xf8fafc, label: 'Shell' }
-};
 
 const App = () => {
   const [prompt, setPrompt] = useState("");
@@ -177,7 +168,7 @@ const App = () => {
       )}
       <div className="absolute top-8 left-8 flex items-center gap-6 bg-[#1e1e20]/60 backdrop-blur-3xl p-5 rounded-full border border-white/5 shadow-2xl z-30">
         <Cpu size={26} className="text-sky-400" />
-        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.34</span>
+        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.35</span>
       </div>
       <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-2 shadow-inner z-30">
         <button onClick={() => { setActiveTab('kernel'); setInspectMode(false); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'kernel' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}><Layout size={16} /> Workstation</button>
@@ -185,7 +176,6 @@ const App = () => {
       </div>
       <div className="absolute left-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 bg-[#1e1e20]/80 backdrop-blur-3xl border border-white/10 p-3 rounded-[3.5rem] shadow-2xl z-30">
           <button onClick={() => addMass()} className="w-16 h-16 flex items-center justify-center text-sky-400 hover:bg-sky-400/10 rounded-[2rem] transition-all shadow-xl"><Box size={26} /></button>
-          <button onClick={() => setShowSection(!showSection)} className={`w-16 h-16 flex items-center justify-center rounded-[2rem] transition-all text-white/20 hover:bg-white/5`}><Scissors size={26} /></button>
           <button onClick={() => setIsGhostMode(!isGhostMode)} className={`w-16 h-16 flex items-center justify-center rounded-[2rem] transition-all ${isGhostMode ? 'bg-white text-black shadow-lg scale-105' : 'text-white/20 hover:bg-white/5'}`}><Ghost size={26} /></button>
       </div>
       <div className={`absolute right-0 top-0 h-full flex transition-transform duration-1000 z-30 ${sidebarOpen ? 'translate-x-0' : 'translate-x-[calc(100%-40px)]'}`}>
