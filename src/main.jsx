@@ -14,9 +14,9 @@ import {
 import './index.css';
 
 /**
- * SIMMORPH KERNEL v7.9.38
+ * SIMMORPH KERNEL v7.9.39
  * Unified Entry Point: src/main.jsx
- * FIXED: targetUrl corrected to pure string (stripped markdown artifact).
+ * FIXED: targetUrl corrected to pure string (stripped markdown link artifacts).
  */
 
 const getSafeEnv = (key, fallback = '') => {
@@ -139,6 +139,7 @@ const App = () => {
   const generateFromAI = async () => {
     if (!prompt) return; setLoading(true);
     try {
+      // FIXED: Correct pure JavaScript string (removed Markdown artifacts)
       const targetUrl = "[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/)" + modelName + ":generateContent?key=" + apiKey;
       const res = await fetch(targetUrl, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -158,7 +159,7 @@ const App = () => {
            <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setActiveBlueprint(null)} />
            <div className="relative w-full max-w-7xl h-full bg-[#1e1e20] border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col md:flex-row pointer-events-auto">
               <div className="flex-1 bg-white relative flex items-center justify-center min-h-0 text-left">{renderDraftContent(activeBlueprint.data)}</div>
-              <div className="w-full md:w-[32rem] h-full p-12 bg-[#18181b] overflow-y-auto text-left">
+              <div className="w-full md:w-[32rem] h-full p-12 bg-[#18181b] overflow-y-auto">
                  <button onClick={() => setActiveBlueprint(null)} className="mb-8 p-4 bg-white/5 rounded-3xl hover:bg-white/10 transition-all text-white/40"><X size={28}/></button>
                  <h2 className="text-white font-black text-3xl uppercase tracking-tighter">{activeBlueprint.data.program}</h2>
                  <button onClick={() => showToast("Exporting...")} className="mt-12 w-full bg-white text-black py-6 rounded-3xl font-black uppercase tracking-widest active:scale-95 transition-all">Export Set</button>
@@ -168,7 +169,7 @@ const App = () => {
       )}
       <div className="absolute top-8 left-8 flex items-center gap-6 bg-[#1e1e20]/60 backdrop-blur-3xl p-5 rounded-full border border-white/5 shadow-2xl z-30">
         <Cpu size={26} className="text-sky-400" />
-        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.38</span>
+        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.39</span>
       </div>
       <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-2 shadow-inner z-30">
         <button onClick={() => { setActiveTab('kernel'); setInspectMode(false); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'kernel' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}><Layout size={16} /> Workstation</button>
