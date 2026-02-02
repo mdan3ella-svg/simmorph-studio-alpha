@@ -14,10 +14,9 @@ import {
 import './index.css';
 
 /**
- * SIMMORPH KERNEL v7.9.28
+ * SIMMORPH KERNEL v7.9.29
  * Unified Entry Point: src/main.jsx
- * FIXED: targetUrl string corrected (removed Markdown link brackets).
- * FIXED: Build logic for mdan3ella-svg/simmorph-studio-alpha.
+ * FIXED: targetUrl string corrected (removed markdown brackets).
  */
 
 const getSafeEnv = (key, fallback = '') => {
@@ -42,15 +41,6 @@ try {
   }
 } catch (e) { console.warn("SimMorph: Sync deferred."); }
 
-const MATERIALS = {
-  concrete: { color: 0x94a3b8, label: 'Concrete' },
-  glass: { color: 0xbae6fd, transparent: true, opacity: 0.3, label: 'Glass' },
-  timber: { color: 0x92400e, label: 'CLT' },
-  steel: { color: 0x334155, label: 'Steel' },
-  void: { color: 0xffffff, transparent: true, opacity: 0.05, wireframe: true, label: 'Void' },
-  default: { color: 0xf8fafc, label: 'Shell' }
-};
-
 const App = () => {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
@@ -71,7 +61,6 @@ const App = () => {
   const controlsRef = useRef();
   const transformRef = useRef();
   const massesRef = useRef([]); 
-  const slicesGroupRef = useRef(new THREE.Group());
   
   const interactionState = useRef({ inspectMode, isGhostMode, selectedObjectId });
   useEffect(() => { 
@@ -85,12 +74,10 @@ const App = () => {
 
   const renderDraftContent = (data) => {
     const scale = 2.5; const svgW = data.w * scale; const svgD = data.d * scale; const pad = 40;
-    const vW = svgW + (pad * 2); const vH = svgD + (pad * 2);
     return (
       <div className="w-full h-full bg-slate-50 relative flex items-center justify-center p-20 overflow-hidden text-left">
-        <svg viewBox={"0 0 " + vW + " " + vH} className="w-full h-full drop-shadow-xl">
-           <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#cbd5e1" strokeWidth="0.2"/></pattern>
-           <rect width="100%" height="100%" fill="url(#grid)" />
+        <svg viewBox={"0 0 " + (svgW + pad * 2) + " " + (svgD + pad * 2)} className="w-full h-full drop-shadow-xl">
+           <rect width="100%" height="100%" fill="#f1f5f9" />
            <rect x={pad} y={pad} width={svgW} height={svgD} fill="white" stroke="#0f172a" strokeWidth="2" />
            <g className="font-mono text-[4px] fill-slate-900 font-black">
               <text x={pad} y={pad - 10}>{data.w}M SPAN</text>
@@ -107,12 +94,12 @@ const App = () => {
     sceneRef.current = scene;
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 5000);
     camera.position.set(240, 200, 240); cameraRef.current = camera;
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, logarithmicDepthBuffer: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     containerRef.current.appendChild(renderer.domElement); rendererRef.current = renderer;
     scene.add(new THREE.HemisphereLight(0xffffff, 0x18181b, 0.9));
     const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(150, 400, 100); scene.add(sun);
-    scene.add(new THREE.GridHelper(1500, 60, 0x2d2d30, 0x1e1e20)); scene.add(slicesGroupRef.current);
+    scene.add(new THREE.GridHelper(1500, 60, 0x2d2d30, 0x1e1e20));
     const controls = new OrbitControls(camera, renderer.domElement); controls.enableDamping = true;
     controlsRef.current = controls;
     const tControls = new TransformControls(camera, renderer.domElement);
@@ -144,8 +131,7 @@ const App = () => {
     if (!sceneRef.current) return;
     const { id = null, w = 50, h = 100, d = 50, x = 0, z = 0, material = 'default', program = 'Zone' } = params;
     const geom = new THREE.BoxGeometry(w, h, d);
-    const matData = MATERIALS[material] || MATERIALS.default;
-    const meshMat = new THREE.MeshPhysicalMaterial({ color: matData.color, transparent: true, opacity: isGhostMode ? 0.2 : (matData.opacity || 1), roughness: 0.5, metalness: 0.1, wireframe: isGhostMode || (material === 'void') });
+    const meshMat = new THREE.MeshPhysicalMaterial({ color: 0xf8fafc, transparent: true, opacity: isGhostMode ? 0.2 : 1 });
     const mesh = new THREE.Mesh(geom, meshMat); mesh.position.set(x, h/2, z);
     sceneRef.current.add(mesh); massesRef.current.push({ id: mesh.uuid, mesh, w, h, d, material, program });
     setRenderTrigger(v => v + 1);
@@ -173,19 +159,19 @@ const App = () => {
            <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setActiveBlueprint(null)} />
            <div className="relative w-full max-w-7xl h-full bg-[#1e1e20] border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col md:flex-row pointer-events-auto">
               <div className="flex-1 bg-white relative flex items-center justify-center min-h-0 text-left">{renderDraftContent(activeBlueprint.data)}</div>
-              <div className="w-full md:w-[32rem] h-full p-12 bg-[#18181b] overflow-y-auto text-left">
+              <div className="w-full md:w-[32rem] h-full p-12 bg-[#18181b] overflow-y-auto">
                  <button onClick={() => setActiveBlueprint(null)} className="mb-8 p-4 bg-white/5 rounded-3xl hover:bg-white/10 transition-all text-white/40"><X size={28}/></button>
                  <h2 className="text-white font-black text-3xl uppercase tracking-tighter">{activeBlueprint.data.program}</h2>
-                 <button onClick={() => showToast("Exporting Set...")} className="mt-12 w-full bg-white text-black py-6 rounded-3xl font-black uppercase tracking-widest active:scale-95 transition-all">Export Set</button>
+                 <button onClick={() => showToast("Exporting...")} className="mt-12 w-full bg-white text-black py-6 rounded-3xl font-black uppercase tracking-widest active:scale-95 transition-all">Export Set</button>
               </div>
            </div>
         </div>
       )}
       <div className="absolute top-8 left-8 flex items-center gap-6 bg-[#1e1e20]/60 backdrop-blur-3xl p-5 rounded-full border border-white/5 shadow-2xl z-30">
         <Cpu size={26} className="text-sky-400" />
-        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.28</span>
+        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.29</span>
       </div>
-      <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-2 shadow-inner z-30">
+      <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-2 gap-2 shadow-inner z-30">
         <button onClick={() => { setActiveTab('kernel'); setInspectMode(false); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'kernel' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}><Layout size={16} /> Workstation</button>
         <button onClick={() => { setActiveTab('inspect'); setInspectMode(true); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'inspect' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}><SearchIcon size={16} /> Inspector</button>
       </div>
