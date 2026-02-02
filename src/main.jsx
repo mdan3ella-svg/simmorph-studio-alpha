@@ -14,10 +14,9 @@ import {
 import './index.css';
 
 /**
- * SIMMORPH KERNEL v7.9.32
+ * SIMMORPH KERNEL v7.9.34
  * Unified Entry Point: src/main.jsx
- * FIXED: targetUrl string corrected (removed markdown brackets).
- * FIXED: Sync logic for GitHub Pages simulation.
+ * FIXED: targetUrl string corrected to pure JS (no markdown link brackets).
  */
 
 const getSafeEnv = (key, fallback = '') => {
@@ -70,7 +69,7 @@ const App = () => {
   const controlsRef = useRef();
   const transformRef = useRef();
   const massesRef = useRef([]); 
-
+  
   const interactionState = useRef({ inspectMode, isGhostMode, selectedObjectId });
   useEffect(() => { 
     interactionState.current = { inspectMode, isGhostMode, selectedObjectId }; 
@@ -178,7 +177,7 @@ const App = () => {
       )}
       <div className="absolute top-8 left-8 flex items-center gap-6 bg-[#1e1e20]/60 backdrop-blur-3xl p-5 rounded-full border border-white/5 shadow-2xl z-30">
         <Cpu size={26} className="text-sky-400" />
-        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.32</span>
+        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.34</span>
       </div>
       <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-2 shadow-inner z-30">
         <button onClick={() => { setActiveTab('kernel'); setInspectMode(false); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'kernel' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}><Layout size={16} /> Workstation</button>
@@ -186,10 +185,11 @@ const App = () => {
       </div>
       <div className="absolute left-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 bg-[#1e1e20]/80 backdrop-blur-3xl border border-white/10 p-3 rounded-[3.5rem] shadow-2xl z-30">
           <button onClick={() => addMass()} className="w-16 h-16 flex items-center justify-center text-sky-400 hover:bg-sky-400/10 rounded-[2rem] transition-all shadow-xl"><Box size={26} /></button>
+          <button onClick={() => setShowSection(!showSection)} className={`w-16 h-16 flex items-center justify-center rounded-[2rem] transition-all text-white/20 hover:bg-white/5`}><Scissors size={26} /></button>
           <button onClick={() => setIsGhostMode(!isGhostMode)} className={`w-16 h-16 flex items-center justify-center rounded-[2rem] transition-all ${isGhostMode ? 'bg-white text-black shadow-lg scale-105' : 'text-white/20 hover:bg-white/5'}`}><Ghost size={26} /></button>
       </div>
       <div className={`absolute right-0 top-0 h-full flex transition-transform duration-1000 z-30 ${sidebarOpen ? 'translate-x-0' : 'translate-x-[calc(100%-40px)]'}`}>
-        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-10 h-64 self-center bg-[#1e1e20] rounded-l-[3rem] border border-white/10 p-4 text-white/10 hover:text-sky-400 transition-all">{sidebarOpen ? <ChevronRight /> : <ChevronLeft />}</button>
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-10 h-64 self-center bg-[#1e1e20] rounded-l-[3rem] border border-white/5 text-white/10 hover:text-sky-400 transition-all active:scale-95 shadow-2xl">{sidebarOpen ? <ChevronRight /> : <ChevronLeft />}</button>
         <div className="w-[28vw] h-full bg-[#111113]/98 backdrop-blur-[150px] border-l border-white/10 p-14 flex flex-col gap-14 shadow-2xl overflow-y-auto custom-scrollbar text-left text-slate-300">
            <h3 className="text-[11px] font-black uppercase text-white/30 tracking-[0.8em]">BIM Manifest</h3>
            <div className="flex flex-col gap-4">
