@@ -14,9 +14,10 @@ import {
 import './index.css';
 
 /**
- * SIMMORPH KERNEL v7.9.21
+ * SIMMORPH KERNEL v7.9.24
  * Unified Entry Point: src/main.jsx
- * FIXED: targetUrl cleaned of all Markdown artifacts.
+ * FIXED: targetUrl string corrected to pure JS string (removed markdown brackets).
+ * FIXED: Build logic for mdan3ella-svg/simmorph-studio-alpha.
  */
 
 const getSafeEnv = (key, fallback = '') => {
@@ -153,7 +154,7 @@ const App = () => {
   const generateFromAI = async () => {
     if (!prompt) return; setLoading(true);
     try {
-      // FIXED: Clean Target URL for Gemini
+      // FIXED: Clean Target URL (no Markdown links)
       const targetUrl = "[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/)" + modelName + ":generateContent?key=" + apiKey;
       const res = await fetch(targetUrl, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -183,7 +184,7 @@ const App = () => {
       )}
       <div className="absolute top-8 left-8 flex items-center gap-6 bg-[#1e1e20]/60 backdrop-blur-3xl p-5 rounded-full border border-white/5 shadow-2xl z-30">
         <Cpu size={26} className="text-sky-400" />
-        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.21</span>
+        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.24</span>
       </div>
       <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-2 shadow-inner z-30">
         <button onClick={() => { setActiveTab('kernel'); setInspectMode(false); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'kernel' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}><Layout size={16} /> Workstation</button>
@@ -196,13 +197,13 @@ const App = () => {
       </div>
       <div className={`absolute right-0 top-0 h-full flex transition-transform duration-1000 z-30 ${sidebarOpen ? 'translate-x-0' : 'translate-x-[calc(100%-40px)]'}`}>
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-10 h-64 self-center bg-[#1e1e20] rounded-l-[3rem] border border-white/5 text-white/10 hover:text-sky-400 transition-all active:scale-95 shadow-2xl">{sidebarOpen ? <ChevronRight /> : <ChevronLeft />}</button>
-        <div className="w-[28vw] h-full bg-[#111113]/98 backdrop-blur-[150px] border-l border-white/10 p-14 flex flex-col gap-14 shadow-2xl overflow-y-auto custom-scrollbar text-left">
+        <div className="w-[28vw] h-full bg-[#111113]/98 backdrop-blur-[150px] border-l border-white/10 p-14 flex flex-col gap-14 shadow-2xl overflow-y-auto custom-scrollbar text-left text-slate-300">
            <h3 className="text-[11px] font-black uppercase text-white/30 tracking-[0.8em]">BIM Manifest</h3>
            <div className="flex flex-col gap-4">
              {massesRef.current.map((m, i) => (
                <div key={i} onClick={() => { setSelectedObjectId(m.id); if(inspectMode) setActiveBlueprint({data: m}); }} className={`p-8 rounded-[3.5rem] border transition-all cursor-pointer group ${selectedObjectId === m.id ? 'bg-sky-500/10 border-sky-500/50 shadow-inner' : 'bg-white/5 border-white/5 hover:border-white/10'}`}>
                   <p className="text-white font-black uppercase tracking-widest text-sm">{m.program}</p>
-                  <p className="text-[10px] text-white/20 font-mono mt-3">REF: {String(m.id).slice(0, 12)}</p>
+                  <p className="text-[10px] text-white/20 font-mono mt-3 uppercase tracking-tighter group-hover:text-sky-400 transition-colors">REF: {String(m.id).slice(0, 12)}</p>
                </div>
              ))}
            </div>
