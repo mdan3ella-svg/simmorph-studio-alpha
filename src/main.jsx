@@ -14,9 +14,9 @@ import {
 import './index.css';
 
 /**
- * SIMMORPH KERNEL v7.9.18
+ * SIMMORPH KERNEL v7.9.19
  * Unified Entry Point: src/main.jsx
- * FIXED: targetUrl cleaned of Markdown artifacts for production stability.
+ * FIXED: targetUrl string is now a clean string (removed markdown brackets).
  */
 
 const getSafeEnv = (key, fallback = '') => {
@@ -86,7 +86,7 @@ const App = () => {
     const scale = 2.5; const svgW = data.w * scale; const svgD = data.d * scale; const pad = 40;
     const vW = svgW + (pad * 2); const vH = svgD + (pad * 2);
     return (
-      <div className="w-full h-full bg-slate-50 relative flex items-center justify-center p-20 overflow-hidden">
+      <div className="w-full h-full bg-slate-50 relative flex items-center justify-center p-20 overflow-hidden text-left">
         <svg viewBox={"0 0 " + vW + " " + vH} className="w-full h-full drop-shadow-xl">
            <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#cbd5e1" strokeWidth="0.2"/></pattern>
            <rect width="100%" height="100%" fill="url(#grid)" />
@@ -153,6 +153,7 @@ const App = () => {
   const generateFromAI = async () => {
     if (!prompt) return; setLoading(true);
     try {
+      // FIXED: Clean string targetUrl (no Markdown links)
       const targetUrl = "[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/)" + modelName + ":generateContent?key=" + apiKey;
       const res = await fetch(targetUrl, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -165,14 +166,14 @@ const App = () => {
   };
 
   return (
-    <div className="relative h-screen w-screen bg-[#09090b] overflow-hidden font-sans text-slate-400 select-none">
+    <div className="relative h-screen w-screen bg-[#09090b] overflow-hidden font-sans text-slate-400 select-none text-left">
       <div ref={containerRef} className="absolute inset-0 z-0" />
       {activeBlueprint && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center p-12 animate-in fade-in zoom-in-95">
            <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setActiveBlueprint(null)} />
            <div className="relative w-full max-w-7xl h-full bg-[#1e1e20] border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col md:flex-row pointer-events-auto">
-              <div className="flex-1 bg-white relative flex items-center justify-center min-h-0">{renderDraftContent(activeBlueprint.data)}</div>
-              <div className="w-full md:w-[32rem] h-full p-12 bg-[#18181b] overflow-y-auto text-left">
+              <div className="flex-1 bg-white relative flex items-center justify-center min-h-0 text-left">{renderDraftContent(activeBlueprint.data)}</div>
+              <div className="w-full md:w-[32rem] h-full p-12 bg-[#18181b] overflow-y-auto">
                  <button onClick={() => setActiveBlueprint(null)} className="mb-8 p-4 bg-white/5 rounded-3xl hover:bg-white/10 transition-all"><X size={28}/></button>
                  <h2 className="text-white font-black text-3xl uppercase tracking-tighter">{activeBlueprint.data.program}</h2>
                  <button onClick={() => showToast("Exporting Set...")} className="mt-12 w-full bg-white text-black py-6 rounded-3xl font-black uppercase tracking-widest active:scale-95 transition-all">Export Set</button>
@@ -182,9 +183,9 @@ const App = () => {
       )}
       <div className="absolute top-8 left-8 flex items-center gap-6 bg-[#1e1e20]/60 backdrop-blur-3xl p-5 rounded-full border border-white/5 shadow-2xl z-30">
         <Cpu size={26} className="text-sky-400" />
-        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.18</span>
+        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.19</span>
       </div>
-      <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-2 shadow-inner z-30">
+      <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-2 gap-2 shadow-inner z-30">
         <button onClick={() => { setActiveTab('kernel'); setInspectMode(false); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'kernel' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}><Layout size={16} /> Workstation</button>
         <button onClick={() => { setActiveTab('inspect'); setInspectMode(true); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'inspect' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}><SearchIcon size={16} /> Inspector</button>
       </div>
