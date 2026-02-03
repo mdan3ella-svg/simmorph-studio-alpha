@@ -6,6 +6,7 @@
 <link rel="icon" type="image/svg+xml" href="/vite.svg" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>SimMorph Studio</title>
+<!-- Standard Tailwind CDN -->
 <script src="https://www.google.com/search?q=https://cdn.tailwindcss.com"></script>
 <style>
 body, html, #root {
@@ -20,7 +21,7 @@ background-color: #09090b;
 </head>
 <body>
 <div id="root"></div>
-<!-- CRITICAL: Path must match src/main.jsx -->
-<script type="module" src="/src/main.jsx"></script>
+<!-- FIXED: Removed leading slash to allow correct path resolution on GitHub Pages -->
+<script type="module" src="src/main.jsx"></script>
 </body>
 </html>
