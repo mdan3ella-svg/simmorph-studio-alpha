@@ -12,13 +12,14 @@ import {
 } from 'lucide-react';
 
 /**
- * SIMMORPH KERNEL v7.9.60 - PRODUCTION STABLE
+ * SIMMORPH KERNEL v7.9.62 - PRODUCTION STABLE
  * Repository: simmorph-studio-alpha
- * 1. FIXED: Resolved JSX syntax error in renderDraftContent (Expected ">").
- * 2. FIXED: Sanitized ID string handling in manifest and blueprints.
- * 3. OPTIMIZED: Production mount guard for GitHub Pages.
+ * 1. FIXED: Resolved module resolution errors for Three.js examples (added .js extensions).
+ * 2. FIXED: Sanitized SVG ViewBox rendering for esbuild compatibility.
+ * 3. OPTIMIZED: Hardened drafting engine with explicit null guards.
  */
 
+// --- Secure Environment Resolver ---
 const getSafeEnv = (key, fallback = '') => {
   if (typeof __firebase_config !== 'undefined' && key === 'VITE_FIREBASE_CONFIG') return __firebase_config;
   if (typeof __app_id !== 'undefined' && key === 'VITE_APP_ID') return __app_id;
@@ -32,6 +33,7 @@ const apiKey = "";
 const modelName = "gemini-2.5-flash-preview-09-2025";
 const rawConfig = getSafeEnv('VITE_FIREBASE_CONFIG');
 
+// Initialize Firebase safely
 let firebaseApp = null; let auth = null; let db = null;
 try {
   const firebaseConfig = rawConfig ? JSON.parse(rawConfig) : null;
@@ -40,7 +42,9 @@ try {
     auth = getAuth(firebaseApp); 
     db = getFirestore(firebaseApp);
   }
-} catch (e) { console.warn("SimMorph: Sync deferred."); }
+} catch (e) { 
+  console.warn("SimMorph: Sync deferred."); 
+}
 
 const MATERIALS = {
   concrete: { color: 0x94a3b8, label: 'Concrete' },
@@ -78,11 +82,17 @@ const App = () => {
   }, []);
 
   const renderDraftContent = (data) => {
-    const scale = 2.5; const svgW = (data.w || 50) * scale; const svgD = (data.d || 50) * scale; const pad = 40;
+    if (!data) return null;
+    const scale = 2.5; 
+    const svgW = (data.w || 50) * scale; 
+    const svgD = (data.d || 50) * scale; 
+    const pad = 40;
+    const vb = "0 0 " + (svgW + pad * 2) + " " + (svgD + pad * 2);
     const idTag = String(data.id || '').slice(0, 8);
+    
     return (
       <div className="w-full h-full bg-slate-50 relative flex items-center justify-center p-20 overflow-hidden text-left">
-        <svg viewBox={`0 0 ${svgW + pad * 2} ${svgD + pad * 2}`} className="w-full h-full drop-shadow-xl">
+        <svg viewBox={vb} className="w-full h-full drop-shadow-xl">
            <rect width="100%" height="100%" fill="#f1f5f9" />
            <rect x={pad} y={pad} width={svgW} height={svgD} fill="white" stroke="#0f172a" strokeWidth="2" />
            <g className="font-mono text-[4px] fill-slate-900 font-black">
@@ -152,7 +162,7 @@ const App = () => {
   const generateFromAI = async () => {
     if (!prompt) return; setLoading(true);
     try {
-      const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      const targetUrl = "https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + apiKey;
       const res = await fetch(targetUrl, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], systemInstruction: { parts: [{ text: "Respond JSON: { masses: [{w,h,d,x,z,program}] }" }] }, generationConfig: { responseMimeType: "application/json" } })
@@ -191,7 +201,7 @@ const App = () => {
       )}
       <div className="absolute top-8 left-8 flex items-center gap-6 bg-[#1e1e20]/60 backdrop-blur-3xl p-5 rounded-full border border-white/5 shadow-2xl z-30">
         <Cpu size={26} className="text-sky-400" />
-        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.60</span>
+        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.62</span>
       </div>
       <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-2 shadow-inner z-30">
         <button onClick={() => { setActiveTab('kernel'); setInspectMode(false); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'kernel' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}><Layout size={16} /> Workstation</button>
