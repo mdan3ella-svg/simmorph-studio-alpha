@@ -8,15 +8,15 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { 
-  Box, Cpu, Scissors, X, Layout, Search as SearchIcon, Ghost, ChevronRight, ChevronLeft
+  Box, Cpu, Scissors, X, Layout, Search as SearchIcon, Ghost, ChevronRight, ChevronLeft, AlertTriangle
 } from 'lucide-react';
 
 /**
- * SIMMORPH KERNEL v7.9.58 - UNIFIED PRODUCTION STABLE
+ * SIMMORPH KERNEL v7.9.59 - YELLOW SIMULATION STABLE
  * Repository: simmorph-studio-alpha
- * 1. FIXED: Resolved JSX/Parsing syntax error in generateFromAI logic.
- * 2. STABILIZED: Refactored AI fetch pipeline for improved error handling.
- * 3. OPTIMIZED: Persistent _reactRoot guard for production mounting.
+ * 1. THEME: Migrated to High-Visibility Amber/Yellow Simulation aesthetic.
+ * 2. LOGIC: Implemented BIM Constraint warnings for over-scaled masses (>10k m3).
+ * 3. STABILITY: Hardened React 18 mount guard for production environments.
  */
 
 // --- Secure Environment Resolver ---
@@ -220,19 +220,19 @@ const App = () => {
         </div>
       )}
       <div className="absolute top-8 left-8 flex items-center gap-6 bg-[#1e1e20]/60 backdrop-blur-3xl p-5 rounded-full border border-white/5 shadow-2xl z-30">
-        <Cpu size={26} className="text-sky-400" />
-        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.58</span>
+        <Cpu size={26} className="text-amber-400" />
+        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.59</span>
       </div>
       <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-2 shadow-inner z-30">
-        <button onClick={() => { setActiveTab('kernel'); setInspectMode(false); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'kernel' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}>
+        <button onClick={() => { setActiveTab('kernel'); setInspectMode(false); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'kernel' ? 'bg-amber-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}>
           <Layout size={16} /> Workstation
         </button>
-        <button onClick={() => { setActiveTab('inspect'); setInspectMode(true); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'inspect' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}>
+        <button onClick={() => { setActiveTab('inspect'); setInspectMode(true); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'inspect' ? 'bg-amber-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}>
           <SearchIcon size={16} /> Inspector
         </button>
       </div>
       <div className="absolute left-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 bg-[#1e1e20]/80 backdrop-blur-3xl border border-white/10 p-3 rounded-[3.5rem] shadow-2xl z-30">
-          <button onClick={() => addMass()} className="w-16 h-16 flex items-center justify-center text-sky-400 hover:bg-sky-400/10 rounded-[2rem] transition-all shadow-xl">
+          <button onClick={() => addMass()} className="w-16 h-16 flex items-center justify-center text-amber-400 hover:bg-amber-400/10 rounded-[2rem] transition-all shadow-xl">
             <Box size={26} />
           </button>
           <button onClick={() => setIsGhostMode(!isGhostMode)} className={`w-16 h-16 flex items-center justify-center rounded-[2rem] transition-all ${isGhostMode ? 'bg-white text-black shadow-lg scale-105' : 'text-white/20 hover:bg-white/5'}`}>
@@ -240,24 +240,31 @@ const App = () => {
           </button>
       </div>
       <div className={`absolute right-0 top-0 h-full flex transition-transform duration-1000 z-30 ${sidebarOpen ? 'translate-x-0' : 'translate-x-[calc(100%-40px)]'}`}>
-        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-10 h-64 self-center bg-[#1e1e20] rounded-l-[3rem] border border-white/10 p-4 text-white/10 hover:text-sky-400 transition-all">
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-10 h-64 self-center bg-[#1e1e20] rounded-l-[3rem] border border-white/10 p-4 text-white/10 hover:text-amber-400 transition-all">
           {sidebarOpen ? <ChevronRight /> : <ChevronLeft />}
         </button>
         <div className="w-[28vw] h-full bg-[#111113]/98 backdrop-blur-[150px] border-l border-white/10 p-14 flex flex-col gap-14 shadow-2xl overflow-y-auto custom-scrollbar text-left text-slate-300">
            <h3 className="text-[11px] font-black uppercase text-white/30 tracking-[0.8em]">BIM Manifest</h3>
            <div className="flex flex-col gap-4">
-             {massesRef.current.map((m, i) => (
-               <div key={i} onClick={() => { setSelectedObjectId(m.id); if(inspectMode) setActiveBlueprint({data: m}); }} className={`p-8 rounded-[3.5rem] border transition-all cursor-pointer group ${selectedObjectId === m.id ? 'bg-sky-500/10 border-sky-500/50 shadow-inner' : 'bg-white/5 border-white/5 hover:border-white/10'}`}>
-                  <p className="text-white font-black uppercase tracking-widest text-sm">{m.program}</p>
-                  <p className="text-[10px] text-white/20 font-mono mt-3 uppercase tracking-tighter group-hover:text-sky-400 transition-colors">REF: {String(m.id || '').slice(0, 12)}</p>
-               </div>
-             ))}
+             {massesRef.current.map((m, i) => {
+               const volume = m.w * m.h * m.d;
+               const isOverscaled = volume > 10000;
+               return (
+                <div key={i} onClick={() => { setSelectedObjectId(m.id); if(inspectMode) setActiveBlueprint({data: m}); }} className={`p-8 rounded-[3.5rem] border transition-all cursor-pointer group ${selectedObjectId === m.id ? 'bg-amber-500/10 border-amber-500/50 shadow-inner' : 'bg-white/5 border-white/5 hover:border-white/10'}`}>
+                    <div className="flex items-center justify-between">
+                      <p className="text-white font-black uppercase tracking-widest text-sm">{m.program}</p>
+                      {isOverscaled && <AlertTriangle size={14} className="text-amber-500 animate-pulse" />}
+                    </div>
+                    <p className="text-[10px] text-white/20 font-mono mt-3 uppercase tracking-tighter group-hover:text-amber-400 transition-colors">REF: {String(m.id || '').slice(0, 12)}</p>
+                </div>
+               );
+             })}
            </div>
         </div>
       </div>
       <div className="absolute bottom-12 left-1/2 -translate-x-1/2 w-[60vw] pointer-events-auto z-30">
         <div className="relative group">
-          <div className="absolute -inset-1 bg-sky-500/20 rounded-[4rem] blur-xl opacity-0 group-focus-within:opacity-100 transition-all duration-1000" />
+          <div className="absolute -inset-1 bg-amber-500/20 rounded-[4rem] blur-xl opacity-0 group-focus-within:opacity-100 transition-all duration-1000" />
           <div className="relative flex items-center bg-[#1e1e20]/98 backdrop-blur-[100px] border border-white/10 rounded-[4rem] pl-16 pr-6 py-6 shadow-2xl overflow-hidden">
             <input 
               type="text" 
@@ -267,7 +274,7 @@ const App = () => {
               placeholder="Synthesize kernel..." 
               className="flex-1 bg-transparent text-white text-lg focus:outline-none placeholder:text-white/5 font-medium tracking-tight" 
             />
-            <button onClick={generateFromAI} disabled={loading} className="bg-white hover:bg-sky-100 text-black px-16 py-8 rounded-[3rem] font-black uppercase text-xs tracking-widest transition-all active:scale-95 shadow-xl">
+            <button onClick={generateFromAI} disabled={loading} className="bg-white hover:bg-amber-100 text-black px-16 py-8 rounded-[3rem] font-black uppercase text-xs tracking-widest transition-all active:scale-95 shadow-xl">
               {loading ? 'Synthesizing...' : 'MORPH'}
             </button>
           </div>
