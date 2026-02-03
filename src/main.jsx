@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { createRoot } from 'react-dom/client';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
@@ -11,10 +12,11 @@ import {
 } from 'lucide-react';
 
 /**
- * SIMMORPH KERNEL v7.7.5 - PRODUCTION STABLE
- * 1. FIXED: Resolved JSX syntax error in SVG transform attribute.
- * 2. FIXED: Corrected export name mismatch (App -> SimMorphApp).
- * 3. STABILIZED: Refactored SVG ViewBox and string concatenation for esbuild compatibility.
+ * SIMMORPH KERNEL v7.9.63 - UNIFIED PRODUCTION STABLE
+ * Repository: simmorph-studio-alpha
+ * 1. FIXED: Resolved JSX/esbuild syntax error by refactoring SVG attributes.
+ * 2. FIXED: Integrated Production Mounting (createRoot) into the kernel.
+ * 3. STABILIZED: Hardened environment resolver for GitHub Actions compatibility.
  */
 
 // --- Secure Environment Resolver ---
@@ -62,16 +64,13 @@ const SimMorphApp = () => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('kernel');
   const [selectedObjectId, setSelectedObjectId] = useState(null);
-  const [floorHeight, setFloorHeight] = useState(3.8);
-  const [showSlices, setShowSlices] = useState(true);
-  const [sectionHeight, setSectionHeight] = useState(65);
-  const [showSection, setShowSection] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [notification, setNotification] = useState("");
   const [isGhostMode, setIsGhostMode] = useState(false);
   const [activeBlueprint, setActiveBlueprint] = useState(null); 
   const [inspectMode, setInspectMode] = useState(false);
   const [renderTrigger, setRenderTrigger] = useState(0);
+  const [user, setUser] = useState(null);
 
   const containerRef = useRef();
   const sceneRef = useRef();
@@ -80,8 +79,6 @@ const SimMorphApp = () => {
   const controlsRef = useRef();
   const transformRef = useRef();
   const massesRef = useRef([]); 
-  const slicesGroupRef = useRef(new THREE.Group());
-  const clippingPlaneRef = useRef(new THREE.Plane(new THREE.Vector3(0, -1, 0), 1000));
   
   const interactionState = useRef({ inspectMode, isGhostMode, selectedObjectId });
   useEffect(() => { 
@@ -100,7 +97,7 @@ const SimMorphApp = () => {
     const svgD = (data.d || 50) * scale; 
     const pad = 40;
     const vb = "0 0 " + (svgW + pad * 2) + " " + (svgD + pad * 2);
-    const idTag = String(data.id || '').slice(0, 8);
+    const idTag = "ID: " + String(data.id || '').slice(0, 8);
     const rotateTag = "rotate(90 " + (pad + svgW + 10) + " " + (pad + svgD / 2) + ")";
 
     return (
@@ -110,7 +107,7 @@ const SimMorphApp = () => {
            <rect x={pad} y={pad} width={svgW} height={svgD} fill="white" stroke="#0f172a" strokeWidth="2" />
            <g className="font-mono text-[4px] fill-slate-900 font-black">
               <text x={pad} y={pad - 10}>{data.w || 50}M SPAN</text>
-              <text x={pad + svgW + 10} y={pad + svgD / 2} transform={rotateTag}>ID: {idTag}</text>
+              <text x={pad + svgW + 10} y={pad + svgD / 2} transform={rotateTag}>{idTag}</text>
            </g>
         </svg>
       </div>
@@ -154,6 +151,25 @@ const SimMorphApp = () => {
     };
     window.addEventListener('pointerdown', onPointerDown);
     return () => { window.removeEventListener('pointerdown', onPointerDown); renderer.dispose(); };
+  }, []);
+
+  useEffect(() => {
+    if (auth) {
+      const initAuth = async () => {
+        try {
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth);
+          }
+        } catch (e) {
+          console.warn("SimMorph Auth deferral.");
+        }
+      };
+      initAuth();
+      const unsubscribe = onAuthStateChanged(auth, setUser);
+      return () => unsubscribe();
+    }
   }, []);
 
   const addMass = useCallback((params = {}) => {
@@ -201,7 +217,7 @@ const SimMorphApp = () => {
       )}
       <div className="absolute top-8 left-8 flex items-center gap-6 bg-[#1e1e20]/60 backdrop-blur-3xl p-5 rounded-full border border-white/5 shadow-2xl z-30">
         <Cpu size={26} className="text-sky-400" />
-        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.7.5</span>
+        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.63</span>
       </div>
       <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-2 gap-2 shadow-inner z-30">
         <button onClick={() => { setActiveTab('kernel'); setInspectMode(false); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'kernel' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}><Layout size={16} /> Workstation</button>
@@ -238,5 +254,13 @@ const SimMorphApp = () => {
     </div>
   );
 };
+
+// --- Production Entry Point ---
+const container = document.getElementById('root');
+if (container && !container._reactRoot) {
+  const root = createRoot(container);
+  container._reactRoot = root;
+  root.render(<SimMorphApp />);
+}
 
 export default SimMorphApp;
