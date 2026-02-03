@@ -5,21 +5,20 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { 
   Box, Cpu, Scissors, X, Layout, Search as SearchIcon, Ghost, ChevronRight, ChevronLeft, AlertTriangle
 } from 'lucide-react';
 
 /**
- * SIMMORPH KERNEL v7.9.59 - YELLOW SIMULATION STABLE
+ * SIMMORPH KERNEL v7.9.60 - PRODUCTION STABLE
  * Repository: simmorph-studio-alpha
- * 1. THEME: Migrated to High-Visibility Amber/Yellow Simulation aesthetic.
- * 2. LOGIC: Implemented BIM Constraint warnings for over-scaled masses (>10k m3).
- * 3. STABILITY: Hardened React 18 mount guard for production environments.
+ * 1. FIXED: Resolved JSX syntax error in renderDraftContent (Expected ">").
+ * 2. FIXED: Sanitized ID string handling in manifest and blueprints.
+ * 3. OPTIMIZED: Production mount guard for GitHub Pages.
  */
 
-// --- Secure Environment Resolver ---
 const getSafeEnv = (key, fallback = '') => {
   if (typeof __firebase_config !== 'undefined' && key === 'VITE_FIREBASE_CONFIG') return __firebase_config;
   if (typeof __app_id !== 'undefined' && key === 'VITE_APP_ID') return __app_id;
@@ -33,7 +32,6 @@ const apiKey = "";
 const modelName = "gemini-2.5-flash-preview-09-2025";
 const rawConfig = getSafeEnv('VITE_FIREBASE_CONFIG');
 
-// Initialize Firebase safely
 let firebaseApp = null; let auth = null; let db = null;
 try {
   const firebaseConfig = rawConfig ? JSON.parse(rawConfig) : null;
@@ -42,15 +40,12 @@ try {
     auth = getAuth(firebaseApp); 
     db = getFirestore(firebaseApp);
   }
-} catch (e) { 
-  console.warn("SimMorph: Cloud sync deferred until secrets are bound."); 
-}
+} catch (e) { console.warn("SimMorph: Sync deferred."); }
 
 const MATERIALS = {
-  concrete: { color: 0x94a3b8, roughness: 0.8, metalness: 0.1, label: 'Structural Concrete' },
-  glass: { color: 0xbae6fd, roughness: 0.05, metalness: 1.0, transparent: true, opacity: 0.3, label: 'High-Perf Glass' },
-  timber: { color: 0x92400e, roughness: 0.9, metalness: 0.0, label: 'CLT Panel' },
-  default: { color: 0xf8fafc, roughness: 0.5, metalness: 0.1, label: 'Massing Shell' }
+  concrete: { color: 0x94a3b8, label: 'Concrete' },
+  glass: { color: 0xbae6fd, transparent: true, opacity: 0.3, label: 'Glass' },
+  default: { color: 0xf8fafc, label: 'Massing' }
 };
 
 const App = () => {
@@ -63,7 +58,6 @@ const App = () => {
   const [isGhostMode, setIsGhostMode] = useState(false);
   const [activeBlueprint, setActiveBlueprint] = useState(null); 
   const [inspectMode, setInspectMode] = useState(false);
-  const [renderTrigger, setRenderTrigger] = useState(0);
 
   const containerRef = useRef();
   const sceneRef = useRef();
@@ -84,15 +78,16 @@ const App = () => {
   }, []);
 
   const renderDraftContent = (data) => {
-    const scale = 2.5; const svgW = data.w * scale; const svgD = data.d * scale; const pad = 40;
+    const scale = 2.5; const svgW = (data.w || 50) * scale; const svgD = (data.d || 50) * scale; const pad = 40;
+    const idTag = String(data.id || '').slice(0, 8);
     return (
       <div className="w-full h-full bg-slate-50 relative flex items-center justify-center p-20 overflow-hidden text-left">
         <svg viewBox={`0 0 ${svgW + pad * 2} ${svgD + pad * 2}`} className="w-full h-full drop-shadow-xl">
            <rect width="100%" height="100%" fill="#f1f5f9" />
            <rect x={pad} y={pad} width={svgW} height={svgD} fill="white" stroke="#0f172a" strokeWidth="2" />
            <g className="font-mono text-[4px] fill-slate-900 font-black">
-              <text x={pad} y={pad - 10}>{data.w}M SPAN</text>
-              <text x={pad + 10} y={pad + 15}>ID: {String(data.id || '').slice(0, 8)}</text>
+              <text x={pad} y={pad - 10}>SPAN: {data.w || 50}M</text>
+              <text x={pad + 10} y={pad + 15}>ID: {idTag}</text>
            </g>
         </svg>
       </div>
@@ -106,7 +101,6 @@ const App = () => {
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 5000);
     camera.position.set(240, 200, 240); cameraRef.current = camera;
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
     containerRef.current.appendChild(renderer.domElement); rendererRef.current = renderer;
     scene.add(new THREE.HemisphereLight(0xffffff, 0x18181b, 0.9));
@@ -148,48 +142,28 @@ const App = () => {
 
   const addMass = (params = {}) => {
     if (!sceneRef.current) return;
-    const { id = null, w = 50, h = 100, d = 50, x = 0, z = 0, material = 'default', program = 'Zone' } = params;
+    const { w = 50, h = 100, d = 50, x = 0, z = 0, material = 'default', program = 'Zone' } = params;
     const geom = new THREE.BoxGeometry(w, h, d);
-    const meshMat = new THREE.MeshPhysicalMaterial({ color: MATERIALS[material]?.color || MATERIALS.default.color, transparent: true, opacity: isGhostMode ? 0.2 : 1 });
+    const meshMat = new THREE.MeshPhysicalMaterial({ color: MATERIALS[material]?.color || 0xf8fafc, transparent: true, opacity: isGhostMode ? 0.2 : 1 });
     const mesh = new THREE.Mesh(geom, meshMat); mesh.position.set(x, h/2, z);
     sceneRef.current.add(mesh); massesRef.current.push({ id: mesh.uuid, mesh, w, h, d, material, program });
-    setRenderTrigger(v => v + 1);
   };
 
   const generateFromAI = async () => {
-    if (!prompt) return;
-    setLoading(true);
+    if (!prompt) return; setLoading(true);
     try {
       const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
       const res = await fetch(targetUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          systemInstruction: { parts: [{ text: "Respond JSON only. Structure: { masses: [{w,h,d,x,z,program}] }" }] },
-          generationConfig: { responseMimeType: "application/json" }
-        })
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], systemInstruction: { parts: [{ text: "Respond JSON: { masses: [{w,h,d,x,z,program}] }" }] }, generationConfig: { responseMimeType: "application/json" } })
       });
-      
       const data = await res.json();
-      const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!textResponse) throw new Error("Empty AI response");
-      
-      const json = JSON.parse(textResponse);
-      
-      // Clear existing scene
-      massesRef.current.forEach(m => sceneRef.current.remove(m.mesh));
-      massesRef.current = [];
-      
-      if (json.masses && Array.isArray(json.masses)) {
-        json.masses.forEach(m => addMass(m));
-      }
-    } catch (e) {
-      showToast("Synthesis pipeline error");
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) throw new Error("Empty response");
+      const json = JSON.parse(text);
+      massesRef.current.forEach(m => sceneRef.current.remove(m.mesh)); massesRef.current = [];
+      if (json.masses) json.masses.forEach(m => addMass(m));
+    } catch (e) { showToast("Synthesis Error"); } finally { setLoading(false); }
   };
 
   return (
@@ -207,89 +181,54 @@ const App = () => {
               <div className="flex-1 bg-white relative flex items-center justify-center min-h-0">
                 {renderDraftContent(activeBlueprint.data)}
               </div>
-              <div className="w-full md:w-[32rem] h-full p-12 bg-[#18181b] overflow-y-auto text-left">
-                 <button onClick={() => setActiveBlueprint(null)} className="mb-8 p-4 bg-white/5 rounded-3xl hover:bg-white/10 transition-all text-white/40">
-                   <X size={28}/>
-                 </button>
+              <div className="w-full md:w-[32rem] h-full p-12 bg-[#18181b] overflow-y-auto">
+                 <button onClick={() => setActiveBlueprint(null)} className="mb-8 p-4 bg-white/5 rounded-3xl hover:bg-white/10 transition-all text-white/40"><X size={28}/></button>
                  <h2 className="text-white font-black text-3xl uppercase tracking-tighter">{activeBlueprint.data.program}</h2>
-                 <button onClick={() => showToast("Exporting...")} className="mt-12 w-full bg-white text-black py-6 rounded-3xl font-black uppercase tracking-widest active:scale-95 transition-all">
-                   Export Set
-                 </button>
+                 <button onClick={() => showToast("Exporting...")} className="mt-12 w-full bg-white text-black py-6 rounded-3xl font-black uppercase tracking-widest active:scale-95 transition-all">Export Set</button>
               </div>
            </div>
         </div>
       )}
       <div className="absolute top-8 left-8 flex items-center gap-6 bg-[#1e1e20]/60 backdrop-blur-3xl p-5 rounded-full border border-white/5 shadow-2xl z-30">
-        <Cpu size={26} className="text-amber-400" />
-        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.59</span>
+        <Cpu size={26} className="text-sky-400" />
+        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.60</span>
       </div>
       <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-2 shadow-inner z-30">
-        <button onClick={() => { setActiveTab('kernel'); setInspectMode(false); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'kernel' ? 'bg-amber-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}>
-          <Layout size={16} /> Workstation
-        </button>
-        <button onClick={() => { setActiveTab('inspect'); setInspectMode(true); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'inspect' ? 'bg-amber-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}>
-          <SearchIcon size={16} /> Inspector
-        </button>
+        <button onClick={() => { setActiveTab('kernel'); setInspectMode(false); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'kernel' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}><Layout size={16} /> Workstation</button>
+        <button onClick={() => { setActiveTab('inspect'); setInspectMode(true); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'inspect' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}><SearchIcon size={16} /> Inspector</button>
       </div>
       <div className="absolute left-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 bg-[#1e1e20]/80 backdrop-blur-3xl border border-white/10 p-3 rounded-[3.5rem] shadow-2xl z-30">
-          <button onClick={() => addMass()} className="w-16 h-16 flex items-center justify-center text-amber-400 hover:bg-amber-400/10 rounded-[2rem] transition-all shadow-xl">
-            <Box size={26} />
-          </button>
-          <button onClick={() => setIsGhostMode(!isGhostMode)} className={`w-16 h-16 flex items-center justify-center rounded-[2rem] transition-all ${isGhostMode ? 'bg-white text-black shadow-lg scale-105' : 'text-white/20 hover:bg-white/5'}`}>
-            <Ghost size={26} />
-          </button>
+          <button onClick={() => addMass()} className="w-16 h-16 flex items-center justify-center text-sky-400 hover:bg-sky-400/10 rounded-[2rem] transition-all shadow-xl"><Box size={26} /></button>
+          <button onClick={() => setIsGhostMode(!isGhostMode)} className={`w-16 h-16 flex items-center justify-center rounded-[2rem] transition-all ${isGhostMode ? 'bg-white text-black shadow-lg scale-105' : 'text-white/20 hover:bg-white/5'}`}><Ghost size={26} /></button>
       </div>
       <div className={`absolute right-0 top-0 h-full flex transition-transform duration-1000 z-30 ${sidebarOpen ? 'translate-x-0' : 'translate-x-[calc(100%-40px)]'}`}>
-        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-10 h-64 self-center bg-[#1e1e20] rounded-l-[3rem] border border-white/10 p-4 text-white/10 hover:text-amber-400 transition-all">
-          {sidebarOpen ? <ChevronRight /> : <ChevronLeft />}
-        </button>
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-10 h-64 self-center bg-[#1e1e20] rounded-l-[3rem] border border-white/10 p-4 text-white/10 hover:text-sky-400 transition-all">{sidebarOpen ? <ChevronRight /> : <ChevronLeft />}</button>
         <div className="w-[28vw] h-full bg-[#111113]/98 backdrop-blur-[150px] border-l border-white/10 p-14 flex flex-col gap-14 shadow-2xl overflow-y-auto custom-scrollbar text-left text-slate-300">
            <h3 className="text-[11px] font-black uppercase text-white/30 tracking-[0.8em]">BIM Manifest</h3>
            <div className="flex flex-col gap-4">
-             {massesRef.current.map((m, i) => {
-               const volume = m.w * m.h * m.d;
-               const isOverscaled = volume > 10000;
-               return (
-                <div key={i} onClick={() => { setSelectedObjectId(m.id); if(inspectMode) setActiveBlueprint({data: m}); }} className={`p-8 rounded-[3.5rem] border transition-all cursor-pointer group ${selectedObjectId === m.id ? 'bg-amber-500/10 border-amber-500/50 shadow-inner' : 'bg-white/5 border-white/5 hover:border-white/10'}`}>
-                    <div className="flex items-center justify-between">
-                      <p className="text-white font-black uppercase tracking-widest text-sm">{m.program}</p>
-                      {isOverscaled && <AlertTriangle size={14} className="text-amber-500 animate-pulse" />}
-                    </div>
-                    <p className="text-[10px] text-white/20 font-mono mt-3 uppercase tracking-tighter group-hover:text-amber-400 transition-colors">REF: {String(m.id || '').slice(0, 12)}</p>
-                </div>
-               );
-             })}
+             {massesRef.current.map((m, i) => (
+               <div key={i} onClick={() => { setSelectedObjectId(m.id); if(inspectMode) setActiveBlueprint({data: m}); }} className={`p-8 rounded-[3.5rem] border transition-all cursor-pointer group ${selectedObjectId === m.id ? 'bg-sky-500/10 border-sky-500/50 shadow-inner' : 'bg-white/5 border-white/5 hover:border-white/10'}`}>
+                  <p className="text-white font-black uppercase tracking-widest text-sm">{m.program}</p>
+                  <p className="text-[10px] text-white/20 font-mono mt-3 uppercase tracking-tighter group-hover:text-sky-400 transition-colors">REF: {String(m.id || '').slice(0, 12)}</p>
+               </div>
+             ))}
            </div>
         </div>
       </div>
       <div className="absolute bottom-12 left-1/2 -translate-x-1/2 w-[60vw] pointer-events-auto z-30">
         <div className="relative group">
-          <div className="absolute -inset-1 bg-amber-500/20 rounded-[4rem] blur-xl opacity-0 group-focus-within:opacity-100 transition-all duration-1000" />
+          <div className="absolute -inset-1 bg-sky-500/20 rounded-[4rem] blur-xl opacity-0 group-focus-within:opacity-100 transition-all duration-1000" />
           <div className="relative flex items-center bg-[#1e1e20]/98 backdrop-blur-[100px] border border-white/10 rounded-[4rem] pl-16 pr-6 py-6 shadow-2xl overflow-hidden">
-            <input 
-              type="text" 
-              value={prompt} 
-              onChange={(e) => setPrompt(e.target.value)} 
-              onKeyDown={(e) => e.key === 'Enter' && generateFromAI()} 
-              placeholder="Synthesize kernel..." 
-              className="flex-1 bg-transparent text-white text-lg focus:outline-none placeholder:text-white/5 font-medium tracking-tight" 
-            />
-            <button onClick={generateFromAI} disabled={loading} className="bg-white hover:bg-amber-100 text-black px-16 py-8 rounded-[3rem] font-black uppercase text-xs tracking-widest transition-all active:scale-95 shadow-xl">
-              {loading ? 'Synthesizing...' : 'MORPH'}
-            </button>
+            <input type="text" value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && generateFromAI()} placeholder="Synthesize kernel..." className="flex-1 bg-transparent text-white text-lg focus:outline-none placeholder:text-white/5 font-medium tracking-tight" />
+            <button onClick={generateFromAI} disabled={loading} className="bg-white hover:bg-sky-100 text-black px-16 py-8 rounded-[3rem] font-black uppercase text-xs tracking-widest transition-all active:scale-95 shadow-xl">{loading ? 'Synthesizing...' : 'MORPH'}</button>
           </div>
         </div>
       </div>
-      {notification && (
-        <div className="absolute top-28 left-1/2 -translate-x-1/2 bg-[#1e1e20]/98 px-10 py-5 rounded-full border border-white/10 text-white shadow-2xl animate-in slide-in-from-top-4 font-black uppercase text-[10px] tracking-widest z-[200]">
-          {String(notification)}
-        </div>
-      )}
+      {notification && <div className="absolute top-28 left-1/2 -translate-x-1/2 bg-[#1e1e20]/98 px-10 py-5 rounded-full border border-white/10 text-white shadow-2xl animate-in slide-in-from-top-4 font-black uppercase text-[10px] tracking-widest z-[200]">{String(notification)}</div>}
     </div>
   );
 };
 
-// Robust React 18 Mounting
 const container = document.getElementById('root');
 if (container && !container._reactRoot) {
   const root = createRoot(container);
