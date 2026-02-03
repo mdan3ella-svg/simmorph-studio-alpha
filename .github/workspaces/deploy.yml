@@ -3,9 +3,9 @@ name: Deploy SimMorph to GitHub Pages
 on:
   push:
     branches: [ "main", "master" ]
-  workflow_dispatch: # This adds the "Run workflow" button manually to your Actions tab
+  workflow_dispatch: # Allows you to manually trigger the build from the Actions tab
 
-# Permissions required for GitHub Pages deployment
+# Required permissions for GitHub Pages
 permissions:
   contents: read
   pages: write
@@ -35,7 +35,7 @@ jobs:
       - name: Build project
         run: npm run build
         env:
-          # These link your GitHub Secrets to the build process
+          # Injects your Firebase secrets into the build process
           VITE_FIREBASE_CONFIG: ${{ secrets.VITE_FIREBASE_CONFIG }}
           VITE_APP_ID: ${{ secrets.VITE_APP_ID }}
           
@@ -45,7 +45,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Vite puts the final website in the 'dist' folder
           path: './dist'
 
   deploy:
