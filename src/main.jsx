@@ -8,15 +8,29 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { 
-  Box, Cpu, X, Layout, Search as SearchIcon, Ghost, ChevronRight, ChevronLeft, AlertTriangle
+  Box, Cpu, X, Layout, Search as SearchIcon, Ghost, ChevronRight, ChevronLeft, Zap, Battery, History
 } from 'lucide-react';
 
 /**
- * SIMMORPH KERNEL v7.9.77 - MODEL SYNCHRONIZATION
- * 1. FIXED: Switched model to gemini-2.0-flash based on successful CURL test.
- * 2. FIXED: Hardened VITE_GEMINI_API_KEY resolution for production builds.
- * 3. IMPROVED: Diagnostic logging for API bridge verification.
+ * SIMMORPH KERNEL v7.9.80 - INTELLIGENT HYBRID MODEL
+ * 1. SEED CACHING: Intercepts common prompts to save API tokens.
+ * 2. HEURISTIC ROUTING: Handles simple geometric requests locally.
+ * 3. ENERGY BAR: Visualizes and manages synthesis quotas.
+ * 4. MODEL: Synced to Gemini 2.0 Flash for optimal speed/cost.
  */
+
+// --- Local Seed Library (Cost Optimization) ---
+const SEED_LIBRARY = {
+  "standard core": {
+    masses: [{ w: 15, h: 80, d: 15, x: 0, z: 0, material: 'concrete', program: 'Structural Core' }]
+  },
+  "glass tower": {
+    masses: [
+      { w: 15, h: 100, d: 15, x: 0, z: 0, material: 'concrete', program: 'Core' },
+      { w: 40, h: 80, d: 30, x: 5, z: 0, material: 'glass', program: 'Office Shell' }
+    ]
+  }
+};
 
 const getSafeEnv = (key, fallback = '') => {
   if (typeof __firebase_config !== 'undefined' && key === 'VITE_FIREBASE_CONFIG') return __firebase_config;
@@ -28,17 +42,8 @@ const getSafeEnv = (key, fallback = '') => {
 };
 
 const GEMINI_KEY = getSafeEnv('VITE_GEMINI_API_KEY', '');
-// Updated to match your successful curl test model
 const modelName = "gemini-2.0-flash";
 const rawConfig = getSafeEnv('VITE_FIREBASE_CONFIG');
-
-// Build-Time Diagnostic
-console.log("SimMorph Kernel: Verifying AI Bridge...");
-if (!GEMINI_KEY) {
-  console.error("AI Bridge Failure: VITE_GEMINI_API_KEY is undefined. Ensure GitHub Secrets are mapped in deploy.yml.");
-} else {
-  console.log("AI Bridge Active: Gemini 2.0 Flash context detected.");
-}
 
 let firebaseApp = null; let auth = null; let db = null;
 try {
@@ -63,6 +68,7 @@ const SimMorphApp = () => {
   const [selectedObjectId, setSelectedObjectId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [notification, setNotification] = useState("");
+  const [energy, setEnergy] = useState(10); // Energy Bar State
   const [isGhostMode, setIsGhostMode] = useState(false);
   const [activeBlueprint, setActiveBlueprint] = useState(null); 
   const [inspectMode, setInspectMode] = useState(false);
@@ -91,9 +97,8 @@ const SimMorphApp = () => {
     const vb = "0 0 " + (svgW + pad * 2) + " " + (svgD + pad * 2);
     const idTag = String(data.id || '').slice(0, 8);
     const rot = "rotate(90 " + (pad + svgW + 10) + " " + (pad + svgD / 2) + ")";
-
     return (
-      <div className="w-full h-full bg-slate-50 relative flex items-center justify-center p-20 overflow-hidden text-left">
+      <div className="w-full h-full bg-slate-50 relative flex items-center justify-center p-20 overflow-hidden">
         <svg viewBox={vb} className="w-full h-full drop-shadow-xl font-sans">
            <rect width="100%" height="100%" fill="#f1f5f9" />
            <rect x={pad} y={pad} width={svgW} height={svgD} fill="white" stroke="#0f172a" strokeWidth="2" />
@@ -156,25 +161,47 @@ const SimMorphApp = () => {
 
   const generateFromAI = async () => {
     if (!prompt) return;
-    if (!GEMINI_KEY) { 
-      showToast("Error 403: API Key missing in build config."); 
-      console.error("Synthesis Failed: VITE_GEMINI_API_KEY is empty.");
-      return; 
+    const lowerPrompt = prompt.toLowerCase();
+
+    // 1. Check Energy (Usage Restriction)
+    if (energy <= 0) {
+      showToast("Synthesis Exhausted. Refills in 24h.");
+      return;
     }
+
+    // 2. Intelligent Routing: Local Seed Library
+    if (SEED_LIBRARY[lowerPrompt]) {
+      showToast("Local Seed Found: Instant Morph.");
+      massesRef.current.forEach(m => sceneRef.current.remove(m.mesh)); massesRef.current = [];
+      SEED_LIBRARY[lowerPrompt].masses.forEach(m => addMass(m));
+      return;
+    }
+
+    // 3. Intelligent Routing: Local Heuristics
+    if (lowerPrompt === "add box") {
+      showToast("Heuristic Logic: Object Added.");
+      addMass();
+      return;
+    }
+
+    // 4. Cloud API (Costly Scenario)
+    if (!GEMINI_KEY) { showToast("Error 403: API Key missing."); return; }
     setLoading(true);
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_KEY}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], systemInstruction: { parts: [{ text: "Respond JSON only: { masses: [{w,h,d,x,z,program}] }" }] }, generationConfig: { responseMimeType: "application/json" } })
       });
-      if (!res.ok) throw new Error("API REJECTED KEY");
       const data = await res.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!text) throw new Error("AI Timeout");
       const json = JSON.parse(text);
       massesRef.current.forEach(m => sceneRef.current.remove(m.mesh)); massesRef.current = [];
-      if (json.masses) json.masses.forEach(m => addMass(m));
-    } catch (e) { showToast("Synthesis Sync Error: Check Browser Console"); } finally { setLoading(false); }
+      if (json.masses) {
+        json.masses.forEach(m => addMass(m));
+        setEnergy(prev => prev - 1); // Deduct energy after successful cloud synthesis
+      }
+    } catch (e) { showToast("Synthesis Sync Error"); } finally { setLoading(false); }
   };
 
   return (
@@ -193,20 +220,33 @@ const SimMorphApp = () => {
            </div>
         </div>
       )}
+
+      {/* Dynamic Energy Bar */}
+      <div className="absolute bottom-40 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/40 backdrop-blur-3xl px-6 py-3 rounded-full border border-white/5 z-30">
+        <Battery size={16} className={energy > 2 ? 'text-emerald-400' : 'text-rose-500'} />
+        <div className="w-48 h-1 bg-white/10 rounded-full overflow-hidden">
+          <div className="h-full bg-emerald-400 transition-all duration-500" style={{ width: `${energy * 10}%` }} />
+        </div>
+        <span className="text-[10px] font-black uppercase tracking-widest text-white/40">{energy}/10 Morphs Left</span>
+      </div>
+
       <div className="absolute top-8 left-8 flex items-center gap-6 bg-[#1e1e20]/60 backdrop-blur-3xl p-5 rounded-full border border-white/5 shadow-2xl z-30">
         <Cpu size={26} className="text-sky-400" />
-        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.77</span>
+        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.80</span>
       </div>
+
       <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-2 gap-2 shadow-inner z-30">
         <button onClick={() => { setActiveTab('kernel'); setInspectMode(false); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'kernel' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}><Layout size={16} /> Workstation</button>
         <button onClick={() => { setActiveTab('inspect'); setInspectMode(true); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'inspect' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}><SearchIcon size={16} /> Inspector</button>
       </div>
+
       <div className="absolute left-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 bg-[#1e1e20]/80 backdrop-blur-3xl border border-white/10 p-3 rounded-[3.5rem] shadow-2xl z-30">
           <button onClick={() => addMass()} className="w-16 h-16 flex items-center justify-center text-sky-400 hover:bg-sky-400/10 rounded-[2rem] transition-all shadow-xl"><Box size={26} /></button>
           <button onClick={() => setIsGhostMode(!isGhostMode)} className={`w-16 h-16 flex items-center justify-center rounded-[2rem] transition-all ${isGhostMode ? 'bg-white text-black shadow-lg scale-105' : 'text-white/20 hover:bg-white/5'}`}><Ghost size={26} /></button>
       </div>
+
       <div className={`absolute right-0 top-0 h-full flex transition-transform duration-1000 z-30 ${sidebarOpen ? 'translate-x-0' : 'translate-x-[calc(100%-40px)]'}`}>
-        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-10 h-64 self-center bg-[#1e1e20] rounded-l-[3rem] border border-white/10 p-4 text-white/10 hover:text-sky-400 transition-all active:scale-95 shadow-2xl">{sidebarOpen ? <ChevronRight /> : <ChevronLeft />}</button>
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-10 h-64 self-center bg-[#1e1e20] rounded-l-[3rem] border border-white/10 p-4 text-white/10 hover:text-sky-400 transition-all">{sidebarOpen ? <ChevronRight /> : <ChevronLeft />}</button>
         <div className="w-[28vw] h-full bg-[#111113]/98 backdrop-blur-[150px] border-l border-white/10 p-14 flex flex-col gap-14 shadow-2xl overflow-y-auto text-left text-slate-300">
            <h3 className="text-[11px] font-black uppercase text-white/30 tracking-[0.8em]">BIM Manifest</h3>
            <div className="flex flex-col gap-4">
@@ -219,6 +259,7 @@ const SimMorphApp = () => {
            </div>
         </div>
       </div>
+
       <div className="absolute bottom-12 left-1/2 -translate-x-1/2 w-[60vw] pointer-events-auto z-30">
         <div className="relative group">
           <div className="absolute -inset-1 bg-sky-500/20 rounded-[4rem] blur-xl opacity-0 group-focus-within:opacity-100 transition-all duration-1000" />
