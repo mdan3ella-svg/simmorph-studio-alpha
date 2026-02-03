@@ -1,57 +1,21 @@
-name: Deploy SimMorph to GitHub Pages
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
-on:
-  push:
-    branches: [ "main", "master" ]
-  workflow_dispatch: 
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-          
-      - name: Install dependencies
-        run: npm install
-        
-      - name: Build project
-        run: npm run build
-        env:
-          VITE_FIREBASE_CONFIG: ${{ secrets.VITE_FIREBASE_CONFIG }}
-          VITE_APP_ID: ${{ secrets.VITE_APP_ID }}
-          
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-        
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          # Standard Vite output folder
-          path: './dist'
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+export default defineConfig({
+  plugins: [react()],
+  // FIXED: Matches your exact repository name for GitHub Pages routing
+  base: '/simmorph-studio-alpha/',
+  build: {
+    outDir: 'dist',
+    target: 'esnext',
+    chunkSizeWarningLimit: 2000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          three: ['three'],
+          vendor: ['react', 'react-dom', 'lucide-react', 'firebase/app']
+        }
+      }
+    }
+  }
+});
