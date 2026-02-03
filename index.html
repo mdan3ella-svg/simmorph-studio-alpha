@@ -1,27 +1,26 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<link rel="icon" type="image/svg+xml" href="/vite.svg" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>SimMorph Studio</title>
-<!-- Standard Tailwind CDN -->
-<script src="https://www.google.com/search?q=https://cdn.tailwindcss.com"></script>
-<style>
-body, html, #root {
-margin: 0;
-padding: 0;
-width: 100%;
-height: 100%;
-overflow: hidden;
-background-color: #09090b;
-}
-</style>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SimMorph Studio</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body, html, #root {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #09090b;
+    }
+  </style>
 </head>
 <body>
-<div id="root"></div>
-<!-- FIXED: Removed leading slash to allow correct path resolution on GitHub Pages -->
-<script type="module" src="src/main.jsx"></script>
+  <div id="root"></div>
+  <!-- Relative path without leading slash for local/GitHub subfolder compatibility -->
+  <script type="module" src="src/main.jsx"></script>
 </body>
 </html>
