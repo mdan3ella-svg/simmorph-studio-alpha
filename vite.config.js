@@ -1,9 +1,13 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+/**
+ * SIMMORPH VITE CONFIG v7.9.70
+ * Optimized for GitHub Pages subfolder deployment.
+ */
 export default defineConfig({
   plugins: [react()],
-  // FIXED: Matches your exact repository name for GitHub Pages routing
+  // Matches your repository name exactly for asset routing
   base: '/simmorph-studio-alpha/',
   build: {
     outDir: 'dist',
