@@ -12,9 +12,9 @@ import {
 } from 'lucide-react';
 
 /**
- * SIMMORPH KERNEL v7.9.75 - SECURE AI BRIDGE
+ * SIMMORPH KERNEL v7.9.76 - BUILD-TIME VALIDATOR
  * 1. FIXED: Hardened VITE_GEMINI_API_KEY resolution for GitHub environment.
- * 2. FIXED: Implemented detailed AI error logging for troubleshooting.
+ * 2. DIAGNOSTIC: Added console validation to check secret injection status.
  * 3. OPTIMIZED: Asset pathing for subfolder deployment (404 fix).
  */
 
@@ -30,6 +30,14 @@ const getSafeEnv = (key, fallback = '') => {
 const GEMINI_KEY = getSafeEnv('VITE_GEMINI_API_KEY', '');
 const modelName = "gemini-2.5-flash-preview-09-2025";
 const rawConfig = getSafeEnv('VITE_FIREBASE_CONFIG');
+
+// Build-Time Diagnostic
+console.log("SimMorph Kernel: Verifying AI Bridge...");
+if (!GEMINI_KEY) {
+  console.error("AI Bridge Failure: VITE_GEMINI_API_KEY is undefined. Check GitHub Secrets & Workflow env mapping.");
+} else {
+  console.log("AI Bridge Active: API Key detected.");
+}
 
 let firebaseApp = null; let auth = null; let db = null;
 try {
@@ -85,7 +93,7 @@ const SimMorphApp = () => {
 
     return (
       <div className="w-full h-full bg-slate-50 relative flex items-center justify-center p-20 overflow-hidden text-left">
-        <svg viewBox={vb} className="w-full h-full drop-shadow-xl">
+        <svg viewBox={vb} className="w-full h-full drop-shadow-xl font-sans">
            <rect width="100%" height="100%" fill="#f1f5f9" />
            <rect x={pad} y={pad} width={svgW} height={svgD} fill="white" stroke="#0f172a" strokeWidth="2" />
            <g className="font-mono text-[4px] fill-slate-900 font-black">
@@ -147,7 +155,11 @@ const SimMorphApp = () => {
 
   const generateFromAI = async () => {
     if (!prompt) return;
-    if (!GEMINI_KEY) { showToast("Error 403: API Key missing in build config."); return; }
+    if (!GEMINI_KEY) { 
+      showToast("Error 403: API Key missing in build config."); 
+      console.error("Synthesis Failed: VITE_GEMINI_API_KEY is empty.");
+      return; 
+    }
     setLoading(true);
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_KEY}`, {
@@ -182,7 +194,7 @@ const SimMorphApp = () => {
       )}
       <div className="absolute top-8 left-8 flex items-center gap-6 bg-[#1e1e20]/60 backdrop-blur-3xl p-5 rounded-full border border-white/5 shadow-2xl z-30">
         <Cpu size={26} className="text-sky-400" />
-        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.75</span>
+        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.76</span>
       </div>
       <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-2 gap-2 shadow-inner z-30">
         <button onClick={() => { setActiveTab('kernel'); setInspectMode(false); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'kernel' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}><Layout size={16} /> Workstation</button>
@@ -193,7 +205,7 @@ const SimMorphApp = () => {
           <button onClick={() => setIsGhostMode(!isGhostMode)} className={`w-16 h-16 flex items-center justify-center rounded-[2rem] transition-all ${isGhostMode ? 'bg-white text-black shadow-lg scale-105' : 'text-white/20 hover:bg-white/5'}`}><Ghost size={26} /></button>
       </div>
       <div className={`absolute right-0 top-0 h-full flex transition-transform duration-1000 z-30 ${sidebarOpen ? 'translate-x-0' : 'translate-x-[calc(100%-40px)]'}`}>
-        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-10 h-64 self-center bg-[#1e1e20] rounded-l-[3rem] border border-white/10 p-4 text-white/10 hover:text-sky-400 transition-all">{sidebarOpen ? <ChevronRight /> : <ChevronLeft />}</button>
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-10 h-64 self-center bg-[#1e1e20] rounded-l-[3rem] border border-white/10 p-4 text-white/10 hover:text-sky-400 transition-all active:scale-95 shadow-2xl">{sidebarOpen ? <ChevronRight /> : <ChevronLeft />}</button>
         <div className="w-[28vw] h-full bg-[#111113]/98 backdrop-blur-[150px] border-l border-white/10 p-14 flex flex-col gap-14 shadow-2xl overflow-y-auto text-left text-slate-300">
            <h3 className="text-[11px] font-black uppercase text-white/30 tracking-[0.8em]">BIM Manifest</h3>
            <div className="flex flex-col gap-4">
@@ -227,4 +239,4 @@ if (container && !container._reactRoot) {
   root.render(<SimMorphApp />);
 }
 
-export default SimMorphApp; 
+export default SimMorphApp;
