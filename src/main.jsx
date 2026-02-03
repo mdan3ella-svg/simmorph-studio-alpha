@@ -8,18 +8,17 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { 
-  Box, Cpu, X, Layout, Search as SearchIcon, Ghost, ChevronRight, ChevronLeft, Zap, Battery, History
+  Box, Cpu, X, Layout, Search as SearchIcon, Ghost, ChevronRight, ChevronLeft, Zap, Battery, Settings, Key
 } from 'lucide-react';
 
 /**
- * SIMMORPH KERNEL v7.9.80 - INTELLIGENT HYBRID MODEL
- * 1. SEED CACHING: Intercepts common prompts to save API tokens.
- * 2. HEURISTIC ROUTING: Handles simple geometric requests locally.
- * 3. ENERGY BAR: Visualizes and manages synthesis quotas.
- * 4. MODEL: Synced to Gemini 2.0 Flash for optimal speed/cost.
+ * SIMMORPH KERNEL v7.9.81 - SECURE BRIDGE & BYOK
+ * 1. BYOK MODE: Added manual API key input to bypass 403 environment errors.
+ * 2. HYBRID ROUTING: Maintained Seed Caching and Heuristics.
+ * 3. ENERGY BAR: Integrated with manual/injected key states.
  */
 
-// --- Local Seed Library (Cost Optimization) ---
+// --- Local Seed Library ---
 const SEED_LIBRARY = {
   "standard core": {
     masses: [{ w: 15, h: 80, d: 15, x: 0, z: 0, material: 'concrete', program: 'Structural Core' }]
@@ -33,6 +32,7 @@ const SEED_LIBRARY = {
 };
 
 const getSafeEnv = (key, fallback = '') => {
+  if (typeof window !== 'undefined' && window[key]) return window[key];
   if (typeof __firebase_config !== 'undefined' && key === 'VITE_FIREBASE_CONFIG') return __firebase_config;
   if (typeof __app_id !== 'undefined' && key === 'VITE_APP_ID') return __app_id;
   try {
@@ -41,7 +41,7 @@ const getSafeEnv = (key, fallback = '') => {
   } catch (e) { return fallback; }
 };
 
-const GEMINI_KEY = getSafeEnv('VITE_GEMINI_API_KEY', '');
+const INJECTED_GEMINI_KEY = getSafeEnv('VITE_GEMINI_API_KEY', '');
 const modelName = "gemini-2.0-flash";
 const rawConfig = getSafeEnv('VITE_FIREBASE_CONFIG');
 
@@ -68,7 +68,9 @@ const SimMorphApp = () => {
   const [selectedObjectId, setSelectedObjectId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [notification, setNotification] = useState("");
-  const [energy, setEnergy] = useState(10); // Energy Bar State
+  const [energy, setEnergy] = useState(10);
+  const [customKey, setCustomKey] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
   const [isGhostMode, setIsGhostMode] = useState(false);
   const [activeBlueprint, setActiveBlueprint] = useState(null); 
   const [inspectMode, setInspectMode] = useState(false);
@@ -91,6 +93,8 @@ const SimMorphApp = () => {
     setTimeout(() => setNotification(""), 4000);
   }, []);
 
+  const activeKey = customKey || INJECTED_GEMINI_KEY;
+
   const renderDraftContent = (data) => {
     if (!data) return null;
     const scale = 2.5; const svgW = (data.w || 50) * scale; const svgD = (data.d || 50) * scale; const pad = 40;
@@ -99,7 +103,7 @@ const SimMorphApp = () => {
     const rot = "rotate(90 " + (pad + svgW + 10) + " " + (pad + svgD / 2) + ")";
     return (
       <div className="w-full h-full bg-slate-50 relative flex items-center justify-center p-20 overflow-hidden">
-        <svg viewBox={vb} className="w-full h-full drop-shadow-xl font-sans">
+        <svg viewBox={vb} className="w-full h-full drop-shadow-xl">
            <rect width="100%" height="100%" fill="#f1f5f9" />
            <rect x={pad} y={pad} width={svgW} height={svgD} fill="white" stroke="#0f172a" strokeWidth="2" />
            <g className="font-mono text-[4px] fill-slate-900 font-black">
@@ -163,13 +167,8 @@ const SimMorphApp = () => {
     if (!prompt) return;
     const lowerPrompt = prompt.toLowerCase();
 
-    // 1. Check Energy (Usage Restriction)
-    if (energy <= 0) {
-      showToast("Synthesis Exhausted. Refills in 24h.");
-      return;
-    }
+    if (energy <= 0) { showToast("Synthesis Exhausted. Refills in 24h."); return; }
 
-    // 2. Intelligent Routing: Local Seed Library
     if (SEED_LIBRARY[lowerPrompt]) {
       showToast("Local Seed Found: Instant Morph.");
       massesRef.current.forEach(m => sceneRef.current.remove(m.mesh)); massesRef.current = [];
@@ -177,21 +176,17 @@ const SimMorphApp = () => {
       return;
     }
 
-    // 3. Intelligent Routing: Local Heuristics
-    if (lowerPrompt === "add box") {
-      showToast("Heuristic Logic: Object Added.");
-      addMass();
-      return;
-    }
+    if (lowerPrompt === "add box") { showToast("Heuristic Logic: Object Added."); addMass(); return; }
 
-    // 4. Cloud API (Costly Scenario)
-    if (!GEMINI_KEY) { showToast("Error 403: API Key missing."); return; }
+    if (!activeKey) { showToast("Error 403: API Key Missing. Check Settings."); setShowSettings(true); return; }
+    
     setLoading(true);
     try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_KEY}`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${activeKey}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], systemInstruction: { parts: [{ text: "Respond JSON only: { masses: [{w,h,d,x,z,program}] }" }] }, generationConfig: { responseMimeType: "application/json" } })
       });
+      if (res.status === 403) throw new Error("403_KEY_INVALID");
       const data = await res.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!text) throw new Error("AI Timeout");
@@ -199,14 +194,43 @@ const SimMorphApp = () => {
       massesRef.current.forEach(m => sceneRef.current.remove(m.mesh)); massesRef.current = [];
       if (json.masses) {
         json.masses.forEach(m => addMass(m));
-        setEnergy(prev => prev - 1); // Deduct energy after successful cloud synthesis
+        setEnergy(prev => prev - 1);
       }
-    } catch (e) { showToast("Synthesis Sync Error"); } finally { setLoading(false); }
+    } catch (e) { 
+      if (e.message === "403_KEY_INVALID") {
+        showToast("Error 403: Invalid Key. Update in Settings.");
+        setShowSettings(true);
+      } else {
+        showToast("Synthesis Sync Error");
+      }
+    } finally { setLoading(false); }
   };
 
   return (
     <div className="relative h-screen w-screen bg-[#09090b] overflow-hidden font-sans text-slate-400 select-none text-left">
       <div ref={containerRef} className="absolute inset-0 z-0" />
+
+      {showSettings && (
+        <div className="absolute inset-0 z-[200] flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowSettings(false)} />
+          <div className="relative w-full max-w-md bg-[#18181b] border border-white/10 rounded-[2.5rem] p-10 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center gap-4 mb-8">
+              <Key className="text-sky-400" size={24} />
+              <h2 className="text-white font-black text-xl uppercase tracking-tighter">API Bridge Settings</h2>
+            </div>
+            <p className="text-xs text-slate-500 mb-6 leading-relaxed">If you are encountering <span className="text-rose-500">Error 403</span>, manually paste your Gemini API key below to override environment restrictions.</p>
+            <input 
+              type="password" 
+              value={customKey} 
+              onChange={(e) => setCustomKey(e.target.value)} 
+              placeholder="Paste AIZA API Key..." 
+              className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white text-sm focus:border-sky-500/50 transition-all outline-none mb-8"
+            />
+            <button onClick={() => setShowSettings(false)} className="w-full bg-white text-black py-4 rounded-2xl font-black uppercase text-xs tracking-widest active:scale-95 transition-all">Save & Bridge</button>
+          </div>
+        </div>
+      )}
+
       {activeBlueprint && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center p-12 md:p-32 animate-in fade-in zoom-in-95">
            <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setActiveBlueprint(null)} />
@@ -221,7 +245,6 @@ const SimMorphApp = () => {
         </div>
       )}
 
-      {/* Dynamic Energy Bar */}
       <div className="absolute bottom-40 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/40 backdrop-blur-3xl px-6 py-3 rounded-full border border-white/5 z-30">
         <Battery size={16} className={energy > 2 ? 'text-emerald-400' : 'text-rose-500'} />
         <div className="w-48 h-1 bg-white/10 rounded-full overflow-hidden">
@@ -232,7 +255,11 @@ const SimMorphApp = () => {
 
       <div className="absolute top-8 left-8 flex items-center gap-6 bg-[#1e1e20]/60 backdrop-blur-3xl p-5 rounded-full border border-white/5 shadow-2xl z-30">
         <Cpu size={26} className="text-sky-400" />
-        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.80</span>
+        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none tracking-tighter">Kernel v7.9.81</span>
+      </div>
+
+      <div className="absolute top-8 right-8 z-30">
+        <button onClick={() => setShowSettings(!showSettings)} className="p-5 bg-[#1e1e20]/60 backdrop-blur-3xl border border-white/5 rounded-full text-white/20 hover:text-sky-400 transition-all shadow-xl"><Settings size={22} /></button>
       </div>
 
       <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-2 gap-2 shadow-inner z-30">
