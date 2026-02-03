@@ -33,7 +33,8 @@ jobs:
       - name: Build project
         run: npm run build
         env:
-          # This section "injects" your secrets into the code
+          # CRITICAL: These lines map your GitHub Secrets to the Vite build environment.
+          # If these are missing, your app will return 403 Forbidden errors at runtime.
           VITE_FIREBASE_CONFIG: ${{ secrets.VITE_FIREBASE_CONFIG }}
           VITE_APP_ID: ${{ secrets.VITE_APP_ID }}
           VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }} 
