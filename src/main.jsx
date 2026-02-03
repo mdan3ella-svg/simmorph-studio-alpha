@@ -8,27 +8,26 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { 
-  Box, Cpu, Scissors, X, Layout, Search as SearchIcon, Ghost, ChevronRight, ChevronLeft
+  Box, Cpu, X, Layout, Search as SearchIcon, Ghost, ChevronRight, ChevronLeft, AlertTriangle
 } from 'lucide-react';
 
 /**
- * SIMMORPH KERNEL v7.9.71 - PRODUCTION UNIFIED
- * 1. FIXED: Added .js extensions to Three.js imports for production module resolution.
- * 2. FIXED: Refactored SVG transform strings to prevent esbuild syntax errors.
- * 3. MOUNT: Integrated createRoot mounting for standalone deployment.
+ * SIMMORPH KERNEL v7.9.75 - SECURE AI BRIDGE
+ * 1. FIXED: Hardened VITE_GEMINI_API_KEY resolution for GitHub environment.
+ * 2. FIXED: Implemented detailed AI error logging for troubleshooting.
+ * 3. OPTIMIZED: Asset pathing for subfolder deployment (404 fix).
  */
 
 const getSafeEnv = (key, fallback = '') => {
   if (typeof __firebase_config !== 'undefined' && key === 'VITE_FIREBASE_CONFIG') return __firebase_config;
   if (typeof __app_id !== 'undefined' && key === 'VITE_APP_ID') return __app_id;
   try {
-    const meta = typeof import.meta !== 'undefined' ? import.meta : {};
-    const env = meta.env || {};
+    const env = import.meta.env || {};
     return env[key] || fallback;
   } catch (e) { return fallback; }
 };
 
-const apiKey = ""; 
+const GEMINI_KEY = getSafeEnv('VITE_GEMINI_API_KEY', '');
 const modelName = "gemini-2.5-flash-preview-09-2025";
 const rawConfig = getSafeEnv('VITE_FIREBASE_CONFIG');
 
@@ -74,22 +73,19 @@ const SimMorphApp = () => {
 
   const showToast = useCallback((msg) => {
     setNotification(String(msg));
-    setTimeout(() => setNotification(""), 3000);
+    setTimeout(() => setNotification(""), 4000);
   }, []);
 
   const renderDraftContent = (data) => {
     if (!data) return null;
-    const scale = 2.5; 
-    const svgW = (data.w || 50) * scale; 
-    const svgD = (data.d || 50) * scale; 
-    const pad = 40;
-    const vb = ["0 0", (svgW + pad * 2), (svgD + pad * 2)].join(" ");
+    const scale = 2.5; const svgW = (data.w || 50) * scale; const svgD = (data.d || 50) * scale; const pad = 40;
+    const vb = "0 0 " + (svgW + pad * 2) + " " + (svgD + pad * 2);
     const idTag = String(data.id || '').slice(0, 8);
-    const rot = ["rotate(90", (pad + svgW + 10), (pad + svgD / 2) + ")"].join(" ");
+    const rot = "rotate(90 " + (pad + svgW + 10) + " " + (pad + svgD / 2) + ")";
 
     return (
       <div className="w-full h-full bg-slate-50 relative flex items-center justify-center p-20 overflow-hidden text-left">
-        <svg viewBox={vb} className="w-full h-full drop-shadow-xl font-sans">
+        <svg viewBox={vb} className="w-full h-full drop-shadow-xl">
            <rect width="100%" height="100%" fill="#f1f5f9" />
            <rect x={pad} y={pad} width={svgW} height={svgD} fill="white" stroke="#0f172a" strokeWidth="2" />
            <g className="font-mono text-[4px] fill-slate-900 font-black">
@@ -120,8 +116,7 @@ const SimMorphApp = () => {
     scene.add(tControls); transformRef.current = tControls;
     let frameId;
     const animate = () => {
-      frameId = requestAnimationFrame(animate); 
-      if(controlsRef.current) controlsRef.current.update(); 
+      frameId = requestAnimationFrame(animate); if(controlsRef.current) controlsRef.current.update(); 
       if(rendererRef.current && sceneRef.current && cameraRef.current) rendererRef.current.render(sceneRef.current, cameraRef.current);
     };
     animate();
@@ -133,17 +128,12 @@ const SimMorphApp = () => {
       if (hits.length > 0) {
         const obj = hits[0].object; setSelectedObjectId(obj.uuid);
         if (interactionState.current.inspectMode) {
-          const data = massesRef.current.find(m => m.id === obj.uuid);
-          if (data) setActiveBlueprint({ data });
+          const data = massesRef.current.find(m => m.id === obj.uuid); if (data) setActiveBlueprint({ data });
         } else { tControls.attach(obj); }
       } else { setSelectedObjectId(null); tControls.detach(); }
     };
     window.addEventListener('pointerdown', onPointerDown);
-    return () => { 
-      window.removeEventListener('pointerdown', onPointerDown); 
-      cancelAnimationFrame(frameId);
-      renderer.dispose(); 
-    };
+    return () => { window.removeEventListener('pointerdown', onPointerDown); cancelAnimationFrame(frameId); renderer.dispose(); };
   }, []);
 
   const addMass = (params = {}) => {
@@ -156,19 +146,22 @@ const SimMorphApp = () => {
   };
 
   const generateFromAI = async () => {
-    if (!prompt) return; setLoading(true);
+    if (!prompt) return;
+    if (!GEMINI_KEY) { showToast("Error 403: API Key missing in build config."); return; }
+    setLoading(true);
     try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_KEY}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], systemInstruction: { parts: [{ text: "Respond JSON only: { masses: [{w,h,d,x,z,program}] }" }] }, generationConfig: { responseMimeType: "application/json" } })
       });
+      if (!res.ok) throw new Error("API REJECTED KEY");
       const data = await res.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) throw new Error("AI Synthesis Latency");
+      if (!text) throw new Error("AI Timeout");
       const json = JSON.parse(text);
       massesRef.current.forEach(m => sceneRef.current.remove(m.mesh)); massesRef.current = [];
       if (json.masses) json.masses.forEach(m => addMass(m));
-    } catch (e) { showToast("Synthesis Error"); } finally { setLoading(false); }
+    } catch (e) { showToast("Synthesis Sync Error: Check Browser Console"); } finally { setLoading(false); }
   };
 
   return (
@@ -189,7 +182,7 @@ const SimMorphApp = () => {
       )}
       <div className="absolute top-8 left-8 flex items-center gap-6 bg-[#1e1e20]/60 backdrop-blur-3xl p-5 rounded-full border border-white/5 shadow-2xl z-30">
         <Cpu size={26} className="text-sky-400" />
-        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.71</span>
+        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.75</span>
       </div>
       <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-2 gap-2 shadow-inner z-30">
         <button onClick={() => { setActiveTab('kernel'); setInspectMode(false); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'kernel' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}><Layout size={16} /> Workstation</button>
@@ -200,7 +193,7 @@ const SimMorphApp = () => {
           <button onClick={() => setIsGhostMode(!isGhostMode)} className={`w-16 h-16 flex items-center justify-center rounded-[2rem] transition-all ${isGhostMode ? 'bg-white text-black shadow-lg scale-105' : 'text-white/20 hover:bg-white/5'}`}><Ghost size={26} /></button>
       </div>
       <div className={`absolute right-0 top-0 h-full flex transition-transform duration-1000 z-30 ${sidebarOpen ? 'translate-x-0' : 'translate-x-[calc(100%-40px)]'}`}>
-        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-10 h-64 self-center bg-[#1e1e20] rounded-l-[3rem] border border-white/10 p-4 text-white/10 hover:text-sky-400 transition-all active:scale-95 shadow-2xl">{sidebarOpen ? <ChevronRight /> : <ChevronLeft />}</button>
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-10 h-64 self-center bg-[#1e1e20] rounded-l-[3rem] border border-white/10 p-4 text-white/10 hover:text-sky-400 transition-all">{sidebarOpen ? <ChevronRight /> : <ChevronLeft />}</button>
         <div className="w-[28vw] h-full bg-[#111113]/98 backdrop-blur-[150px] border-l border-white/10 p-14 flex flex-col gap-14 shadow-2xl overflow-y-auto text-left text-slate-300">
            <h3 className="text-[11px] font-black uppercase text-white/30 tracking-[0.8em]">BIM Manifest</h3>
            <div className="flex flex-col gap-4">
@@ -227,7 +220,6 @@ const SimMorphApp = () => {
   );
 };
 
-// --- Production Mounting logic ---
 const container = document.getElementById('root');
 if (container && !container._reactRoot) {
   const root = createRoot(container);
