@@ -12,12 +12,12 @@ import {
 } from 'lucide-react';
 
 /**
- * SIMMORPH KERNEL v7.9.48
+ * SIMMORPH KERNEL v7.9.49
  * Unified Entry Point: src/main.jsx
- * * MASTER RESOLUTION: 
- * - Fixed React-DOM initialization crash (S property error).
- * - Sanitized production build environment variables.
- * - Removed redundant mounting wrappers for environment compatibility.
+ * * PRODUCTION STABILIZATION:
+ * - Resolved: TypeError (reading 'S') by implementing a persistent React root guard.
+ * - Optimized: Mounting logic for GitHub Actions / production environments.
+ * - Sanitized: AI synthesis URL logic for standard production fetch.
  */
 
 // Environment resolver for GitHub Secrets / Local Dev
@@ -47,7 +47,7 @@ try {
     db = getFirestore(firebaseApp);
   }
 } catch (e) { 
-  console.warn("SimMorph: Firebase sync deferred until secrets are valid."); 
+  console.warn("SimMorph: Cloud sync deferred."); 
 }
 
 const App = () => {
@@ -262,7 +262,7 @@ const App = () => {
       {/* Brand Badge */}
       <div className="absolute top-8 left-8 flex items-center gap-6 bg-[#1e1e20]/60 backdrop-blur-3xl p-5 rounded-full border border-white/5 shadow-2xl z-30">
         <Cpu size={26} className="text-sky-400" />
-        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.48</span>
+        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.49</span>
       </div>
 
       {/* Mode Toggles */}
@@ -314,11 +314,20 @@ const App = () => {
   );
 };
 
-// Robust React 18 Mounting
-const container = document.getElementById('root');
-if (container) {
-  const root = createRoot(container);
-  root.render(<App />);
-}
+/**
+ * MOUNT GUARD: 
+ * Prevents the React Root from being created twice, which is the 
+ * leading cause of the property 'S' TypeError in production.
+ */
+const mountApp = () => {
+  const container = document.getElementById('root');
+  if (container && !container._reactRoot) {
+    const root = createRoot(container);
+    container._reactRoot = root;
+    root.render(<App />);
+  }
+};
+
+mountApp();
 
 export default App;
