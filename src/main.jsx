@@ -326,7 +326,7 @@ const mountApp = () => {
     container._reactRoot = root;
     root.render(<App />);
   }
-};
+}; 
 
 mountApp();
 
