@@ -32,16 +32,11 @@ jobs:
         
       - name: Build project
         run: npm run build
-        env:- name: Build project
-        run: npm run build
         env:
+          # This section "injects" your secrets into the code
           VITE_FIREBASE_CONFIG: ${{ secrets.VITE_FIREBASE_CONFIG }}
           VITE_APP_ID: ${{ secrets.VITE_APP_ID }}
           VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }} 
-          CI: false
-          VITE_FIREBASE_CONFIG: ${{ secrets.VITE_FIREBASE_CONFIG }}
-          VITE_APP_ID: ${{ secrets.VITE_APP_ID }}
-          # Prevents the build from failing due to minor warnings/linting issues
           CI: false 
           
       - name: Setup Pages
