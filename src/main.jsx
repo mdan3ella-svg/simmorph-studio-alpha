@@ -12,10 +12,10 @@ import {
 } from 'lucide-react';
 
 /**
- * SIMMORPH KERNEL v7.9.76 - BUILD-TIME VALIDATOR
- * 1. FIXED: Hardened VITE_GEMINI_API_KEY resolution for GitHub environment.
- * 2. DIAGNOSTIC: Added console validation to check secret injection status.
- * 3. OPTIMIZED: Asset pathing for subfolder deployment (404 fix).
+ * SIMMORPH KERNEL v7.9.77 - MODEL SYNCHRONIZATION
+ * 1. FIXED: Switched model to gemini-2.0-flash based on successful CURL test.
+ * 2. FIXED: Hardened VITE_GEMINI_API_KEY resolution for production builds.
+ * 3. IMPROVED: Diagnostic logging for API bridge verification.
  */
 
 const getSafeEnv = (key, fallback = '') => {
@@ -28,15 +28,16 @@ const getSafeEnv = (key, fallback = '') => {
 };
 
 const GEMINI_KEY = getSafeEnv('VITE_GEMINI_API_KEY', '');
-const modelName = "gemini-2.5-flash-preview-09-2025";
+// Updated to match your successful curl test model
+const modelName = "gemini-2.0-flash";
 const rawConfig = getSafeEnv('VITE_FIREBASE_CONFIG');
 
 // Build-Time Diagnostic
 console.log("SimMorph Kernel: Verifying AI Bridge...");
 if (!GEMINI_KEY) {
-  console.error("AI Bridge Failure: VITE_GEMINI_API_KEY is undefined. Check GitHub Secrets & Workflow env mapping.");
+  console.error("AI Bridge Failure: VITE_GEMINI_API_KEY is undefined. Ensure GitHub Secrets are mapped in deploy.yml.");
 } else {
-  console.log("AI Bridge Active: API Key detected.");
+  console.log("AI Bridge Active: Gemini 2.0 Flash context detected.");
 }
 
 let firebaseApp = null; let auth = null; let db = null;
@@ -194,7 +195,7 @@ const SimMorphApp = () => {
       )}
       <div className="absolute top-8 left-8 flex items-center gap-6 bg-[#1e1e20]/60 backdrop-blur-3xl p-5 rounded-full border border-white/5 shadow-2xl z-30">
         <Cpu size={26} className="text-sky-400" />
-        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.76</span>
+        <span className="text-sm font-black uppercase text-white tracking-widest italic leading-none">SimMorph Kernel v7.9.77</span>
       </div>
       <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-2 gap-2 shadow-inner z-30">
         <button onClick={() => { setActiveTab('kernel'); setInspectMode(false); }} className={`px-12 py-4 rounded-[1.75rem] font-black text-[10px] uppercase tracking-[0.4em] transition-all flex items-center gap-3 ${activeTab === 'kernel' ? 'bg-sky-500 text-black shadow-lg' : 'text-white/20 hover:bg-white/5'}`}><Layout size={16} /> Workstation</button>
