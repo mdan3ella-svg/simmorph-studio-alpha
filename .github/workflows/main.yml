@@ -26,6 +26,9 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
+
+      - name: Debug Directory Structure
+        run: ls -R
           
       - name: Install dependencies
         run: npm install
@@ -42,6 +45,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
+          # Standard Vite output folder. 
+          # If the build is "Red", check if 'dist' was created.
           path: './dist'
 
   deploy:
